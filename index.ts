@@ -1,3 +1,5 @@
+import { $ } from "bun";
+
 namespace txtman {
     enum text_types {
         string = "string",
@@ -16,13 +18,13 @@ namespace txtman {
 
     interface token {
         token: string;
-        replacement: string;
+        replaces: string;
     }
 
-    export function as_token(token: string, replacement: string): token {
+    export function as_token(token: string, replaces: string): token {
         return {
             token,
-            replacement,
+            replaces
         };
     }
 
@@ -99,7 +101,7 @@ namespace txtman {
             if (value_copy.type === text_types.code)
                 value_copy.value = value_copy.value.replace(
                     token.token,
-                    token.replacement
+                    token.replaces
                 );
             res.push(value_copy);
         }
@@ -127,11 +129,17 @@ namespace txtman {
     }
 }
 
-function main() {
+async function main() {
     const original = `
     pub fn main() -> void {
+        const obj = {
+            x: "asd"
+        }
         print("hello world fn!");
+        print(obj->x);
     }
+
+    main();
     `;
 
     const no_strings = txtman.remove_strings(original);
@@ -140,10 +148,11 @@ function main() {
         .token(txtman.as_token("fn ", "function "))
         .token(txtman.as_token("pub ", "export "))
         .token(txtman.as_token("print(", "console.log("))
-        .token(txtman.as_token(" -> ", ": "))
+        .token(txtman.as_token(") -> ", "): "))
+        .token(txtman.as_token("->", "."))
         .close();
-
-    console.log(replaced_fn);
+        
+    await $`echo "${replaced_fn}" > ./test.ts && bun run test.ts`;
 }
 
 main();
